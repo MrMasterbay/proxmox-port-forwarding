@@ -52,7 +52,7 @@ delete_rule() {
 
 while true; do
     echo ""
-    echo "Port Forwarding Management"
+    echo "Port Forwarding Management by baGStube Nico"
     echo "1. Show current rules"
     echo "2. Add new forwarding rule"
     echo "3. Delete existing rule"
