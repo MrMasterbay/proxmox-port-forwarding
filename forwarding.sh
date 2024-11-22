@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Made by baGStube Nico
-# Version 1.0
+# Version 1.3
 # Do not rewrite or steal from this Script!
+
+IPTABLES_SAVE_FILE="/etc/iptables/rules.v4"
 
 show_rules() {
     echo "Current NAT Rules:"
@@ -35,6 +37,7 @@ add_rule() {
 
     iptables -t nat -A PREROUTING -p $proto -d $public_ip --dport $src_port -j DNAT --to-destination $dest_ip:$dest_port
     echo "Rule added successfully"
+    save_rules
 }
 
 delete_rule() {
@@ -48,7 +51,32 @@ delete_rule() {
 
     iptables -t nat -D PREROUTING $rule_num
     echo "Rule deleted successfully"
+    save_rules
 }
+
+save_rules() {
+    mkdir -p /etc/iptables
+    iptables-save > $IPTABLES_SAVE_FILE
+    echo "Rules saved to $IPTABLES_SAVE_FILE"
+}
+
+load_rules() {
+    if [ -f $IPTABLES_SAVE_FILE ]; then
+        iptables-restore < $IPTABLES_SAVE_FILE
+        echo "Rules loaded from $IPTABLES_SAVE_FILE"
+    else
+        echo "No saved rules found."
+    fi
+}
+
+# Load existing rules on script startup
+load_rules
+
+# Set up a cron job to save rules every 5 minutes if not already set
+if ! crontab -l | grep -q "iptables-save"; then
+    (crontab -l; echo "*/5 * * * * /sbin/iptables-save > $IPTABLES_SAVE_FILE") | crontab -
+    echo "Scheduled iptables-save every 5 minutes."
+fi
 
 while true; do
     echo ""
