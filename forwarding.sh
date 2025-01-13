@@ -9,7 +9,7 @@ IPTABLES_SAVE_FILE="/etc/iptables/rules.v4"
 show_rules() {
     echo "Current NAT Rules:"
     echo "----------------------------------------"
-    iptables -t nat -L PREROUTING -n -v
+    iptables -t nat -L PREROUTING -n -v --line-numbers
     echo "----------------------------------------"
 }
 
@@ -83,22 +83,32 @@ add_rule() {
 
 delete_rule() {
     show_rules
-    read -p "Enter rule number to delete (1, 2, etc.): " rule_num
+    echo "Enter rule numbers to delete (space-separated, e.g., '1 2 3' or 'all' to delete all): "
+    read -r rules_to_delete
 
-    if ! [[ "$rule_num" =~ ^[0-9]+$ ]]; then
-        echo "Invalid rule number"
-        return 1
+    if [ "$rules_to_delete" = "all" ]; then
+        iptables -t nat -F PREROUTING
+        echo "All rules deleted"
+    else
+        # Convert string to array and sort in descending order
+        IFS=' ' read -ra RULES <<< "$rules_to_delete"
+        SORTED_RULES=($(printf "%s\n" "${RULES[@]}" | sort -nr))
+        
+        for rule_num in "${SORTED_RULES[@]}"; do
+            if ! [[ "$rule_num" =~ ^[0-9]+$ ]]; then
+                echo "Invalid rule number: $rule_num"
+                continue
+            fi
+            iptables -t nat -D PREROUTING $rule_num 2>/dev/null
+            if [ $? -eq 0 ]; then
+                echo "Rule $rule_num deleted successfully"
+            else
+                echo "Failed to delete rule $rule_num"
+            fi
+        done
     fi
-
-    iptables -t nat -D PREROUTING $rule_num
-    echo "Rule deleted successfully"
+    
     save_rules
-}
-
-save_rules() {
-    mkdir -p /etc/iptables
-    iptables-save > $IPTABLES_SAVE_FILE
-    echo "Rules saved to $IPTABLES_SAVE_FILE"
 }
 
 load_rules() {
