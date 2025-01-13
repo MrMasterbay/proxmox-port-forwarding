@@ -81,6 +81,15 @@ add_rule() {
     save_rules
 }
 
+save_rules() {
+    iptables-save > $IPTABLES_SAVE_FILE
+    if [ $? -eq 0 ]; then
+        echo "Rules saved to $IPTABLES_SAVE_FILE"
+    else
+        echo "Failed to save rules"
+    fi
+}
+
 delete_rule() {
     show_rules
     echo "Enter rule numbers to delete (space-separated, e.g., '1 2 3' or 'all' to delete all): "
